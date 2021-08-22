@@ -1,5 +1,7 @@
 ﻿using BepInEx;
 
+using HarmonyLib;
+
 namespace BepInExPlugin
 {
     /// <summary>
@@ -19,7 +21,13 @@ namespace BepInExPlugin
     {
         private void Awake()
         {
-            // Insert code that runs once the plugin starts
+            Harmony.CreateAndPatchAll(typeof(Patches));
         }
+    }
+
+    [HarmonyPatch]
+    public class Patches
+    {
+
     }
 }
