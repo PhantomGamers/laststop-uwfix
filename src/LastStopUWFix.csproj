@@ -3,8 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GameDir>C:\Games\Last Stop</GameDir>
-    <OutputPath>$(GameDir)\BepInEx\plugins\PhantomGamers-UWFix\</OutputPath>
+    <GameDir>C:\Games\Last Stop\</GameDir>
+    <GameDir>$([MSBuild]::EnsureTrailingSlash('$(GameDir)'))</GameDir>
+    <OutputPath>$(GameDir)BepInEx\plugins\PhantomGamers-UWFix\</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
   </PropertyGroup>
 
@@ -13,12 +14,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Core" Version="5.4.11" IncludeAssets="compile" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.11" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Unity.Analyzers" Version="1.10.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="UnityEngine.Core" Version="2018.1.0" IncludeAssets="compile" />
+    <Reference Include="$(GameDir)Last Stop_Data\Managed\Assembly-CSharp.dll" Private="false" SpecificVersion="false" />
+    <Reference Include="$(GameDir)Last Stop_Data\Managed\UnityEngine.dll" Private="false" SpecificVersion="false" />
+    <Reference Include="$(GameDir)Last Stop_Data\Managed\UnityEngine.CoreModule.dll" Private="false" SpecificVersion="false" />
   </ItemGroup>
 
 </Project>
