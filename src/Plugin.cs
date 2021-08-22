@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 
 using Code.Core.Progress;
+using Code.Game;
 
 using HarmonyLib;
 
@@ -9,6 +10,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+
+using UnityEngine;
 
 namespace BepInExPlugin
 {
@@ -29,11 +32,15 @@ namespace BepInExPlugin
     {
         public const string RESOLUTIONS = "2560x1080,3440x1440,3840x1080,5120x1440";
         public static ConfigEntry<string> resOptions;
+        public static ConfigEntry<bool> horFovOption;
+
         public static BepInEx.Logging.ManualLogSource log;
+
         private void Awake()
         {
             log = Logger;
             resOptions = Config.Bind("General", "Resolutions", RESOLUTIONS, "Resolutions to add");
+            horFovOption = Config.Bind("General", "HorizontalFov", true, "Use Horizontal FOV Scaling");
             SetupResolutions();
             Harmony.CreateAndPatchAll(typeof(Patches));
         }
@@ -93,8 +100,19 @@ namespace BepInExPlugin
             progress.SetIntValue(GeneralProgress.ProgressInt.Graphics_ResolutionIdx, ResolutionIdx);
         }
 
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameRender), "SetGameScreenScale")]
+        public static void SetGameScreenScale_Prefix(GameRender __instance)
+        {
+            if (Plugin.horFovOption.Value)
+            {
+                GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = 16f / 9f;
+                GameObject.Find("Camera").GetComponent<Camera>().aspect = __instance._screenAspect;
+            }
+        }
+
         [HarmonyTranspiler]
-        [HarmonyPatch(typeof(Code.Game.GameRender), "SetGameScreenScale")]
+        [HarmonyPatch(typeof(GameRender), "SetGameScreenScale")]
         public static IEnumerable<CodeInstruction> SetGameScreenScale_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             /*
@@ -104,6 +122,9 @@ namespace BepInExPlugin
              * if (this._gameScreenScaleFactor > 1f || this._gameScreenScaleFactor < 1f)
              * In Code.Game.GameRender.SetGameScreenScale
             */
+
+            // We don't need to do this for Hor+ scaling
+            if (Plugin.horFovOption.Value) return instructions;
 
             Plugin.log.LogInfo("Patching Code.Game.GameRender.SetGameScreenScale...");
             CodeMatcher codeMatcher = new CodeMatcher(instructions)
