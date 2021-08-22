@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Configuration;
 
 using Code.Core.Progress;
 
@@ -8,8 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-
-using UnityEngine;
 
 namespace BepInExPlugin
 {
@@ -28,34 +27,46 @@ namespace BepInExPlugin
     [BepInPlugin(PluginInfo.PLUGIN_ID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
+        public const string RESOLUTIONS = "2560x1080,3440x1440,3840x1080,5120x1440";
+        public static ConfigEntry<string> resOptions;
         public static BepInEx.Logging.ManualLogSource log;
         private void Awake()
         {
             log = Logger;
+            resOptions = Config.Bind("General", "Resolutions", RESOLUTIONS, "Resolutions to add");
             SetupResolutions();
             Harmony.CreateAndPatchAll(typeof(Patches));
         }
 
         public static void SetupResolutions()
         {
-            log.LogInfo("Unlocking all resolutions...");
+            log.LogInfo("Adding resolutions...");
             var resolutions = Code.Platform.PlatformManager.ResolutionSettings;
-            resolutions.Clear();
-            foreach (var res in Screen.resolutions)
+            foreach (var res in resOptions.Value.Split(','))
             {
-                var resolution = new Code.Platform.PlatformManager.ResolutionSetting()
+                var splitRes = res.Split('x');
+                if (int.TryParse(splitRes[0], out int resWidth) && int.TryParse(splitRes[1], out int resHeight))
                 {
-                    DisplayName = $"{res.width}x{res.height}",
-                    Width = res.width,
-                    Height = res.height
-                };
-                // Resolutions will be duplicated with different refresh rates, only add the first
-                if (resolutions.Where((currRes) => currRes.DisplayName == resolution.DisplayName).ToArray().Length == 0)
-                {
-                    log.LogDebug($"Adding resolution {resolution.DisplayName}");
-                    resolutions.Add(resolution);
+                    var resolution = new Code.Platform.PlatformManager.ResolutionSetting()
+                    {
+                        DisplayName = res,
+                        Width = resWidth,
+                        Height = resHeight
+                    };
+                    // Resolutions will be duplicated with different refresh rates, only add the first
+                    if (resolutions.Where((currRes) => currRes.DisplayName == resolution.DisplayName).ToArray().Length == 0)
+                    {
+                        log.LogDebug($"Adding resolution {resolution.DisplayName}");
+                        resolutions.Add(resolution);
+                    }
                 }
             }
+
+            // sort by width and then by ascending resolution
+            var sortedResolutions = resolutions.OrderBy(resolution => resolution.Width).ThenBy(resolution => resolution.Height).ToList();
+            // needed for order to show correctly in-game
+            resolutions.Clear();
+            resolutions.AddRange(sortedResolutions);
         }
 
         public static void ClampResIdx(ref int aResIdx)
@@ -64,6 +75,7 @@ namespace BepInExPlugin
             var resSettings = Code.Platform.PlatformManager.ResolutionSettings;
             if (aResIdx > (resSettings.Count - 1) || aResIdx < 0)
             {
+                log.LogDebug("Clamping resolution index...");
                 aResIdx = resSettings.Count - 1;
             }
         }
