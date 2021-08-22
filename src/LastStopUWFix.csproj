@@ -7,10 +7,19 @@
     <GameDir>$([MSBuild]::EnsureTrailingSlash('$(GameDir)'))</GameDir>
     <OutputPath>$(GameDir)BepInEx\plugins\PhantomGamers-UWFix\</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
+    <RootFolder>$([System.IO.Path]::GetDirectoryName($(MSBuildProjectDirectory)))</RootFolder>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +28,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <Reference Include="$(GameDir)Last Stop_Data\Managed\Assembly-CSharp.dll" Private="false" SpecificVersion="false" />
+    <Reference Include="$(RootFolder)\Libs\Assembly-CSharp-nstrip.dll" Private="false" SpecificVersion="false" />
     <Reference Include="$(GameDir)Last Stop_Data\Managed\UnityEngine.dll" Private="false" SpecificVersion="false" />
     <Reference Include="$(GameDir)Last Stop_Data\Managed\UnityEngine.CoreModule.dll" Private="false" SpecificVersion="false" />
   </ItemGroup>
