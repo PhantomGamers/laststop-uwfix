@@ -79,4 +79,5 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         artifactErrorsFailBuild: true
         draft: true
+        allowUpdates: true
       if: ${{env.GithubRelease}}
