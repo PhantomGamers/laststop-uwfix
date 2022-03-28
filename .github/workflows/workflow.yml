@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         arch: [x86, x64]
+      max-parallel: 1
     env:
       BundleBepInEx : true
       BepInExVersion : 5
