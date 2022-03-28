@@ -76,11 +76,7 @@ jobs:
         artifacts: "${{env.PluginName}}-${{env.BepInExArch}}.zip"
         tag: ${{ github.event.inputs.version }}
         commit: ${{ github.ref }}
-        token: ${{ secrets.GITHUB_TOKEN }}
         artifactErrorsFailBuild: true
         draft: true
         allowUpdates: true
-        omitNameDuringUpdate: true
-        omitBodyDuringUpdate: true
-        omitPrereleaseDuringUpdate: true
       if: ${{env.GithubRelease}}
