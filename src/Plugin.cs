@@ -1,55 +1,43 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 
+using Code;
 using Code.Core.Progress;
 using Code.Game;
 
 using HarmonyLib;
 
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
 
 using UnityEngine;
 
-namespace BepInExPlugin
+namespace LastStopUWFix
 {
-    /// <summary>
-    /// This is the main plugin class that BepInEx injects and executes.
-    /// This class provides MonoBehaviour methods and additional BepInEx-specific services like logging and
-    /// configuration system.
-    /// </summary>
-    /// <remarks>
-    /// BepInEx plugins are MonoBehaviours. Refer to Unity documentation for information on how to use various Unity
-    /// events: https://docs.unity3d.com/Manual/class-MonoBehaviour.html
-    ///
-    /// To get started, check out the plugin writing walkthrough:
-    /// https://bepinex.github.io/bepinex_docs/master/articles/dev_guide/plugin_tutorial/index.html
-    /// </remarks>
-    [BepInPlugin(PluginInfo.PLUGIN_ID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInPlugin("com.github.phantomgamers.laststop_uwfix", "Ultrawide Fix", PluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
         public const string RESOLUTIONS = "2560x1080,3440x1440,3840x1080,5120x1440";
         public static ConfigEntry<string> resOptions;
-        public static ConfigEntry<bool> horFovOption;
 
-        public static BepInEx.Logging.ManualLogSource log;
+        public static BepInEx.Logging.ManualLogSource Log;
 
         private void Awake()
         {
-            log = Logger;
+            Log = Logger;
             resOptions = Config.Bind("General", "Resolutions", RESOLUTIONS, "Resolutions to add");
-            horFovOption = Config.Bind("General", "HorizontalFov", true, "Use Horizontal FOV Scaling");
             SetupResolutions();
             Harmony.CreateAndPatchAll(typeof(Patches));
         }
 
         public static void SetupResolutions()
         {
-            log.LogInfo("Adding resolutions...");
+            Log.LogInfo("Adding resolutions...");
             var resolutions = Code.Platform.PlatformManager.ResolutionSettings;
-            foreach (var res in resOptions.Value.Split(','))
+
+            var configResolutions = resOptions.Value.Split(',').ToList();
+            configResolutions.Add($"{Display.main.renderingWidth}x{Display.main.renderingHeight}");
+
+            foreach (var res in configResolutions)
             {
                 var splitRes = res.Split('x');
                 if (int.TryParse(splitRes[0], out int resWidth) && int.TryParse(splitRes[1], out int resHeight))
@@ -63,7 +51,7 @@ namespace BepInExPlugin
                     // Resolutions will be duplicated with different refresh rates, only add the first
                     if (resolutions.Where((currRes) => currRes.DisplayName == resolution.DisplayName).ToArray().Length == 0)
                     {
-                        log.LogDebug($"Adding resolution {resolution.DisplayName}");
+                        Log.LogDebug($"Adding resolution {resolution.DisplayName}");
                         resolutions.Add(resolution);
                     }
                 }
@@ -82,9 +70,21 @@ namespace BepInExPlugin
             var resSettings = Code.Platform.PlatformManager.ResolutionSettings;
             if (aResIdx > (resSettings.Count - 1) || aResIdx < 0)
             {
-                log.LogDebug("Clamping resolution index...");
+                Log.LogDebug("Clamping resolution index...");
                 aResIdx = resSettings.Count - 1;
             }
+        }
+
+        public static void RemoveAspectRestraint()
+        {
+            GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = 16f / 9f;
+            GameObject.Find("Camera").GetComponent<Camera>().aspect = (float)Screen.width / Screen.height;
+        }
+
+        public static void RestoreAspectRestraint()
+        {
+            GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = (float)Screen.width / Screen.height;
+            GameObject.Find("Camera").GetComponent<Camera>().aspect = 16f / 9f;
         }
     }
 
@@ -102,60 +102,25 @@ namespace BepInExPlugin
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GameRender), "SetGameScreenScale")]
-        public static void SetGameScreenScale_Prefix(GameRender __instance)
+        public static void SetGameScreenScale_Prefix()
         {
-            if (Plugin.horFovOption.Value)
-            {
-                GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = 16f / 9f;
-                GameObject.Find("Camera").GetComponent<Camera>().aspect = __instance._screenAspect;
-            }
+            Plugin.RemoveAspectRestraint();
         }
 
-        [HarmonyTranspiler]
-        [HarmonyPatch(typeof(GameRender), "SetGameScreenScale")]
-        public static IEnumerable<CodeInstruction> SetGameScreenScale_Transpiler(IEnumerable<CodeInstruction> instructions)
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.PlayRecapVideoIfNeeded))]
+        public static void RestoreCutsceneAspectRestraints()
         {
-            /*
-             * Replaces
-             * if (this._gameScreenScaleFactor < 1f)
-             * With
-             * if (this._gameScreenScaleFactor > 1f || this._gameScreenScaleFactor < 1f)
-             * In Code.Game.GameRender.SetGameScreenScale
-            */
+            Plugin.Log.LogInfo("CutSceneStart");
+            Plugin.RestoreAspectRestraint();
+        }
 
-            // We don't need to do this for Hor+ scaling
-            if (Plugin.horFovOption.Value) return instructions;
-
-            Plugin.log.LogInfo("Patching Code.Game.GameRender.SetGameScreenScale...");
-            CodeMatcher codeMatcher = new CodeMatcher(instructions)
-                        .MatchForward(false,
-                            new CodeMatch(OpCodes.Ldarg_0),
-                            new CodeMatch(i => i.opcode == OpCodes.Ldfld && ((FieldInfo)i.operand).Name == "_gameScreenScaleFactor"),
-                            new CodeMatch(OpCodes.Ldc_R4),
-                            new CodeMatch(OpCodes.Bge_Un)
-                        );
-
-            if (codeMatcher.IsInvalid)
-            {
-                Plugin.log.LogError("Patch failed, fix version is not compatible with game version.");
-                return instructions;
-            }
-
-            CodeInstruction[] checkInstructions = new CodeInstruction[4];
-            for (int i = 0; i < checkInstructions.Length; i++)
-            {
-                checkInstructions[i] = codeMatcher.InstructionAt(i);
-            }
-
-            foreach (var instruction in checkInstructions)
-            {
-                codeMatcher = codeMatcher.InsertAndAdvance(instruction);
-            }
-
-            return codeMatcher
-                   .Advance(-1)
-                   .SetOpcodeAndAdvance(OpCodes.Ble_Un)
-                   .InstructionEnumeration();
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.DoCutscene))]
+        public static void RemoveCutsceneAspectRestraints()
+        {
+            Plugin.Log.LogInfo("CutSceneEnd");
+            Plugin.RemoveAspectRestraint();
         }
     }
 }
