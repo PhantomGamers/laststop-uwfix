@@ -1,0 +1,81 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Version number
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    env:
+      BundleBepInEx : true
+      BepInExVersion : 5
+      BepInExArch : ${{ matrix.arch }}
+      BepInExRuntime : IL2CPP
+      PluginName : PhantomGamers-LastStopUWFix
+      GithubRelease : true
+    steps:
+    - name: Check Tag
+      id: check-tag
+      uses: actions-ecosystem/action-regex-match@v2
+      with:
+        text: ${{ github.event.inputs.version }}
+        regex: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
+
+    - name: Fail if invalid
+      if: steps.check-tag.outputs.match == ''
+      uses: Actions/github-script@v3
+      with:
+        script: |
+          core.setFailed('Invalid tag')
+
+    - uses: actions/checkout@v2
+    - uses: actions/setup-dotnet@v1
+
+    - name: BepInEx 6
+      run: |
+        bepinexurl = $(curl -vs https://builds.bepinex.dev/projects/bepinex_be 2>&1 | grep -Po '(?<=href=")(\/projects\/bepinex_be\/(.*)\/BepInEx_Unity${{env.BepInExRuntime}}_${{env.BepInExArch}}(.*))(?=")' | head -1)"
+        wget $bepinexurl > bepinex.zip
+      if: ${{env.BundleBepInEx && env.BepInExVersion == 6}}
+
+    - name: BepInEx 5
+      shell: pwsh
+      run: |
+        $webData = Invoke-WebRequest -Uri "https://api.github.com/repos/BepInEx/BepInEx/releases/latest"
+        $release = ConvertFrom-Json $webData.content
+        $bepinexurl = $release.assets.browser_download_url -match '${{env.BepInExArch}}'
+        wget $bepinexurl > bepinex.zip
+      if: ${{env.BundleBepInEx && env.BepInExVersion == 5}}
+
+    - name: Bundle with BepInEx
+      run: | 
+        mkdir out;
+        unzip BepInEx* -d out;
+        dotnet build -c Release /p:Version=${{ github.event.inputs.version }} -o out/BepInEx/plugins/${{env.PluginName}};
+      if: ${{env.BundleBepInEx}}
+
+    - name: Package without BepInEx
+      run: |
+        dotnet build -c Release /p:Version=${{ github.event.inputs.version }} -o out/${{env.PluginName}}
+      if: ${{!env.BundleBepInEx}}
+
+    - name: Zip build
+      run: cd out && zip -r ../${{env.PluginName}}-${{env.BepInExArch}}.zip * && cd ..
+
+    - name: Publish to Github
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "${{env.PluginName}}-${{env.BepInExArch}}.zip"
+        tag: ${{ github.event.inputs.version }}
+        commit: ${{ github.ref }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifactErrorsFailBuild: true
+        draft: true
+      if: ${{env.GithubRelease}}
