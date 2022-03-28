@@ -80,4 +80,7 @@ jobs:
         artifactErrorsFailBuild: true
         draft: true
         allowUpdates: true
+        omitNameDuringUpdate: true
+        omitBodyDuringUpdate: true
+        omitPrereleaseDuringUpdate: true
       if: ${{env.GithubRelease}}
