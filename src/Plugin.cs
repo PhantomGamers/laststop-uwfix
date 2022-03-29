@@ -108,7 +108,7 @@ namespace LastStopUWFix
         }
 
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.PlayRecapVideoIfNeeded))]
+        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.PlayVideo))]
         public static void RestoreCutsceneAspectRestraints()
         {
             Plugin.Log.LogInfo("CutSceneStart");

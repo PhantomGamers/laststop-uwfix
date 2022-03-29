@@ -8,7 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <PluginsDir>E:\Games\Last Stop\BepInEx\plugins</PluginsDir>
-    <OutDir Condition="Exists($(PluginsDir))">$(PluginsDir)\PhantomGamers-UWFix</OutDir>
+    <OutDir Condition="Exists($(PluginsDir))">$(PluginsDir)\PhantomGamers-LastStopUWFix</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
