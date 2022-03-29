@@ -16,17 +16,16 @@ namespace LastStopUWFix
     [BepInPlugin("com.github.phantomgamers.laststop_uwfix", "Ultrawide Fix", PluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string RESOLUTIONS = "2560x1080,3440x1440,3840x1080,5120x1440";
         public static ConfigEntry<string> resOptions;
 
         public static BepInEx.Logging.ManualLogSource Log;
 
-        public static float TargetAspect { get; set; }
+        public static float TargetAspect { get; set; } = (float)Display.main.systemWidth / Display.main.systemHeight;
 
         private void Awake()
         {
             Log = Logger;
-            resOptions = Config.Bind("General", "Resolutions", RESOLUTIONS, "Resolutions to add");
+            resOptions = Config.Bind("General", "Resolutions", $"{Display.main.systemWidth}x{Display.main.systemHeight}", "Resolutions to add (multiple can be added separated by , )");
             SetupResolutions();
             Harmony.CreateAndPatchAll(typeof(Patches));
         }
