@@ -122,6 +122,7 @@ namespace LastStopUWFix
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(UnityEngine.Video.VideoPlayer), nameof(UnityEngine.Video.VideoPlayer.Stop))]
+        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.DoCutscene))]
         public static void RemoveCutsceneAspectRestraints()
         {
             Plugin.Log.LogInfo("CutSceneEnd");
