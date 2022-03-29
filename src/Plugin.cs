@@ -114,7 +114,7 @@ namespace LastStopUWFix
         }
 
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.PlayVideo))]
+        [HarmonyPatch(typeof(UnityEngine.Video.VideoPlayer), nameof(UnityEngine.Video.VideoPlayer.Play))]
         public static void RestoreCutsceneAspectRestraints()
         {
             Plugin.Log.LogInfo("CutSceneStart");
@@ -122,7 +122,7 @@ namespace LastStopUWFix
         }
 
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.OnVideoPlayerLoopPointReached))]
+        [HarmonyPatch(typeof(UnityEngine.Video.VideoPlayer), nameof(UnityEngine.Video.VideoPlayer.Stop))]
         public static void RemoveCutsceneAspectRestraints()
         {
             Plugin.Log.LogInfo("CutSceneEnd");
