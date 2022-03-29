@@ -78,7 +78,7 @@ namespace LastStopUWFix
 
         public static void RemoveAspectRestraint()
         {
-            Log.LogInfo($"Applying aspect {(float)Screen.width / Screen.height}");
+            Log.LogInfo($"Applying aspect {TargetAspect}");
             GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = 16f / 9f;
             GameObject.Find("Camera").GetComponent<Camera>().aspect = TargetAspect;
         }
@@ -86,8 +86,8 @@ namespace LastStopUWFix
         public static void RestoreAspectRestraint()
         {
             Log.LogInfo("Restoring 16:9 aspect ratio...");
-            GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = (float)Screen.width / Screen.height;
-            GameObject.Find("Camera").GetComponent<Camera>().aspect = TargetAspect;
+            GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = TargetAspect;
+            GameObject.Find("Camera").GetComponent<Camera>().aspect = 16f / 9f;
         }
     }
 
