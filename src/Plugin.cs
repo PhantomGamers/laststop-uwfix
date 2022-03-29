@@ -127,5 +127,14 @@ namespace LastStopUWFix
             Plugin.Log.LogInfo("CutSceneEnd");
             Plugin.RemoveAspectRestraint();
         }
+
+#if DEBUG
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Code.UI.Menu.MenuPageStart), nameof(Code.UI.Menu.MenuPageStart.ReadSettings))]
+        public static void EnableChapterSelection(Code.UI.Menu.MenuPageStart __instance)
+        {
+            __instance._chapterSelectAllowed = true;
+        }
+#endif
     }
 }
