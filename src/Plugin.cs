@@ -21,6 +21,8 @@ namespace LastStopUWFix
 
         public static BepInEx.Logging.ManualLogSource Log;
 
+        public static float TargetAspect { get; set; }
+
         private void Awake()
         {
             Log = Logger;
@@ -77,14 +79,16 @@ namespace LastStopUWFix
 
         public static void RemoveAspectRestraint()
         {
+            Log.LogInfo($"Applying aspect {(float)Screen.width / Screen.height}");
             GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = 16f / 9f;
-            GameObject.Find("Camera").GetComponent<Camera>().aspect = (float)Screen.width / Screen.height;
+            GameObject.Find("Camera").GetComponent<Camera>().aspect = TargetAspect;
         }
 
         public static void RestoreAspectRestraint()
         {
+            Log.LogInfo("Restoring 16:9 aspect ratio...");
             GameObject.Find("MasterCamera(Clone)").GetComponent<Camera>().aspect = (float)Screen.width / Screen.height;
-            GameObject.Find("Camera").GetComponent<Camera>().aspect = 16f / 9f;
+            GameObject.Find("Camera").GetComponent<Camera>().aspect = TargetAspect;
         }
     }
 
@@ -101,9 +105,11 @@ namespace LastStopUWFix
         }
 
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(GameRender), "SetGameScreenScale")]
-        public static void SetGameScreenScale_Prefix()
+        [HarmonyPatch(typeof(GameRender), nameof(GameRender.SetGameScreenScale))]
+        public static void SetGameScreenScale_Postfix(GameRender __instance)
         {
+            Plugin.Log.LogInfo($"GameRender Aspect is {__instance._screenAspect}");
+            Plugin.TargetAspect = __instance._screenAspect;
             Plugin.RemoveAspectRestraint();
         }
 
@@ -116,7 +122,7 @@ namespace LastStopUWFix
         }
 
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.DoCutscene))]
+        [HarmonyPatch(typeof(MoonLakeGame), nameof(MoonLakeGame.OnVideoPlayerLoopPointReached))]
         public static void RemoveCutsceneAspectRestraints()
         {
             Plugin.Log.LogInfo("CutSceneEnd");
