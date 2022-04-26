@@ -7,6 +7,8 @@ Enables support for ultrawide (21:9, 32:9, etc) resolutions to the game Last Sto
 - Download the [latest version](https://github.com/PhantomGamers/laststop-uwfix/releases/latest) of this fix.  
 [**For Steam users: use the x86 version**](https://github.com/PhantomGamers/laststop-uwfix/releases/latest/download/PhantomGamers-LastStopUWFix-x86.zip)  
 [**For the Xbox app / Gamepass users: use the x64 version**](https://github.com/PhantomGamers/laststop-uwfix/releases/latest/download/PhantomGamers-LastStopUWFix-x64.zip)  
+- Extract it the folder that the game is installed to (where Last Stop.exe is)
+- Run the game
 
 ## Configuration
 
